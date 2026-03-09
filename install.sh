@@ -71,7 +71,7 @@ detect_mode() {
 # ─── 步骤 1: 部署技能文件 ────────────────────────────────
 deploy_skill() {
     echo ""
-    echo "${BOLD}[1/3] 部署 feishu-bitable 技能${NC}"
+    echo "${BOLD}[1/4] 部署 feishu-bitable 技能${NC}"
     echo ""
 
     if [ "$MODE" = "local" ]; then
@@ -120,7 +120,7 @@ deploy_skill() {
 # ─── 步骤 2: 安装飞书官方插件 ────────────────────────────
 install_plugin() {
     echo ""
-    echo "${BOLD}[2/3] 安装飞书官方插件${NC}"
+    echo "${BOLD}[2/4] 安装飞书官方插件${NC}"
     echo ""
 
     if ! command -v openclaw &>/dev/null; then
@@ -143,10 +143,53 @@ install_plugin() {
     fi
 }
 
-# ─── 步骤 3: 禁用 stock 插件 + 检查依赖 ─────────────────
+# ─── 步骤 3: 配置工具策略（屏蔽 App 级创建）─────────────
+configure_tools() {
+    echo ""
+    echo "${BOLD}[3/4] 配置工具策略${NC}"
+    echo ""
+
+    local CONFIG="$HOME/.openclaw/openclaw.json"
+    if [ ! -f "$CONFIG" ]; then
+        warn "openclaw.json 不存在，跳过"
+        return 0
+    fi
+
+    # 用 Python 安全地修改 JSON 配置
+    python3 -c "
+import json, sys
+
+config_path = '$CONFIG'
+DENY_TOOL = 'feishu_bitable_app'
+
+with open(config_path, 'r') as f:
+    cfg = json.load(f)
+
+# 确保 tools.deny 存在且包含目标工具
+tools = cfg.setdefault('tools', {})
+deny = tools.setdefault('deny', [])
+if DENY_TOOL not in deny:
+    deny.append(DENY_TOOL)
+    with open(config_path, 'w') as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    print('added')
+else:
+    print('exists')
+" 2>/dev/null
+
+    local result=$?
+    if [ $result -eq 0 ]; then
+        ok "已屏蔽 feishu_bitable_app 工具（防止 API 创建带默认字段）"
+        info "保留的插件工具: record / field / view / table（日常 CRUD 不受影响）"
+    else
+        warn "配置失败，请手动在 openclaw.json 中添加: \"tools\": {\"deny\": [\"feishu_bitable_app\"]}"
+    fi
+}
+
+# ─── 步骤 4: 禁用 stock 插件 + 检查依赖 ─────────────────
 finalize() {
     echo ""
-    echo "${BOLD}[3/3] 环境配置${NC}"
+    echo "${BOLD}[4/4] 环境配置${NC}"
     echo ""
 
     # 禁用 stock feishu 插件
@@ -237,6 +280,7 @@ main() {
 
     deploy_skill
     install_plugin
+    configure_tools
     finalize
     report
 }
