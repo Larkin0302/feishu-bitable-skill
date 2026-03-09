@@ -32,6 +32,9 @@ zsh ~/.openclaw/skills/feishu-bitable/install.sh
 - [OpenClaw](https://openclaw.com) 已安装
 - Python 3 + `requests` 库
 - 飞书自建应用的 App ID / App Secret（[创建指南](https://open.feishu.cn/document/home/introduction-to-custom-app-development/self-built-application-development-process)）
+- **推荐模型**：`claude-opus-4-6` 或 `claude-sonnet-4-6`（需要强指令遵循能力，弱模型可能不按技能流程执行）
+
+> **飞书应用权限要求**：多维表格读写、云文档创建、通讯录读取。具体权限列表见飞书开放平台文档。
 
 ## 配置凭据
 
